@@ -20,8 +20,7 @@ type Product struct {
 type GetAllProductRequest struct {
 	Page    int
 	Limit   int
-	Search  string
-	Name    string
+	SearchName  string
 	Barcode string
 }
 

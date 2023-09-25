@@ -41,21 +41,23 @@ func (s *comingTableRepo) CreateComingTable(req models.CreateComingTable) (strin
 	)
 	if err != nil {
 		fmt.Println("error:", err.Error())
-		return "", err
+		return "error exec", err
 	}
 	return id, nil
 }
 
 func (s *comingTableRepo) UpdateComingTable(req models.ComingTable) (string, error) {
 	query := `
-	update coming_table
-	 set 
+	UPDATE 
+		coming_table
+	 SET 
 		coming_id=$2,
 		branch_id=$3,
 		date_time=$4,
 		status=$5,
 		updated_at= NOW()
-	where id=$1`
+	 WHERE id=$1
+	 `
 	resp, err := s.db.Exec(context.Background(), query,
 		req.Id,
 		req.ComingId,
@@ -64,28 +66,29 @@ func (s *comingTableRepo) UpdateComingTable(req models.ComingTable) (string, err
 		req.Status,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowAffected", pgx.ErrNoRows
 	}
 	return "Updated", nil
 }
 
 func (s *comingTableRepo) GetComingTable(req models.IdRequestComingTable) (models.ComingTable, error) {
 	query := `
-	select
+	SELECT
 		id,
 		coming_id,
 		branch_id,
 		date_time,
 		status,
-		created_at,
-		updated_at
-	 from
+		created_at :: text,
+		updated_at :: text
+	 FROM
 		coming_table
-	 where 
-		id=$1`
+	 WHERE 
+		id=$1
+		`
 	comingTable := models.ComingTable{}
 	err := s.db.QueryRow(context.Background(), query, req.Id).Scan(
 		&comingTable.Id,
@@ -105,7 +108,7 @@ func (s *comingTableRepo) GetComingTable(req models.IdRequestComingTable) (model
 func (b *comingTableRepo) GetAllComingTable(req models.GetAllComingTableRequest) (resp models.GetAllComingTable, err error) {
 	var (
 		params  = make(map[string]interface{})
-		filter  = "WHERE true "
+		filter  = "	WHERE true "
 		offsetQ = " OFFSET 0 "
 		limit   = " LIMIT 10 "
 		offset  = (req.Page - 1) * req.Limit
@@ -117,22 +120,28 @@ func (b *comingTableRepo) GetAllComingTable(req models.GetAllComingTableRequest)
 		branch_id,
 		date_time,
 		status,
-		created_at,
-		updated_at
+		created_at :: text,
+		updated_at :: text
 	FROM
 		coming_table
 	`
-	if req.Search != "" {
-		filter += ` WHERE name ILIKE '%' || @search || '%' `
-		params["search"] = req.Search
-	}
+
 	if req.ComingId != "" {
 		filter += ` AND coming_id=@coming_id `
 		params["coming_id"] = req.ComingId
 	}
-	if req.BranchId != "" {
-		filter += ` AND branch_id=@branch_id `
-		params["branch_id"] = req.BranchId
+	if req.Branch != "" {
+		filter += ` AND branch_id IN(
+			SELECT
+				ct.branch_id
+			FROM 
+				coming_table as ct
+			JOIN 
+				branch as b ON b.id = ct.branch_id
+			WHERE
+				b.name ILIKE '%' || @branch || '%'
+		)`
+		params["branch"] = req.Branch
 	}
 	if req.Limit > 0 {
 		limit = fmt.Sprintf("LIMIT %d", req.Limit)
@@ -165,59 +174,19 @@ func (b *comingTableRepo) GetAllComingTable(req models.GetAllComingTableRequest)
 
 func (s *comingTableRepo) DeleteComingTable(req models.IdRequestComingTable) (string, error) {
 	query := `
-	delete from 
+	DELETE FROM 
 		coming_table
-	 where
+	WHERE
 		id=$1 `
 	resp, err := s.db.Exec(context.Background(), query,
 		req.Id,
 	)
 	if err != nil {
-		return "", err
+		return "ERROR EXEC", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowsAffected", pgx.ErrNoRows
 	}
 
 	return "deleted", nil
 }
-
-// func (s *comingTableRepo) UpdateBalance(req models.UpdateBalanceRequest) (string, error) {
-// 	tr, err:= s.db.Begin(context.Background())
-// 	defer func(){
-// 		if err!= nil {
-// 			tr.Rollback(context.Background())
-// 		}else{
-// 			tr.Commit(context.Background())
-// 		}
-// 	}()
-
-// 	cqb :=`
-// 	update staffs
-// 	set balance=+$2
-// 	where id=$1`
-// 	if req.TransactionType=="withdraw" {
-// 		req.Cashier.Amount = -req.Cashier.Amount
-// 		req.ShopAssisstant.Amount = -req.ShopAssisstant.Amount
-// 	}
-// 	_,err = tr.Exec(context.Background(), cqb, req.Cashier.StaffId, req.Cashier.Amount)
-// 	if err!=nil {
-// 		return "error exec", err
-// 	}
-// 	// strq := `
-// 	// insert into transactions(
-// 	// 	id,
-// 	// 	staff_id,
-// 	// 	sale_id,
-// 	// 	amount,
-// 	// 	type,
-// 	// 	source_type,
-// 	// 	text
-// 	// )`
-// 	// _, err := tr.Exec(context.Background(), strq,
-// 	//  uuid.NewString(), req)
-// 	if err!=nil {
-// 		return "error exec", err
-// 	}
-// 	return "balance updated", nil
-// }

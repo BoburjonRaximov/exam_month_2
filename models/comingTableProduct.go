@@ -24,11 +24,10 @@ type ComingTableProduct struct {
 }
 
 type GetAllComingTableProductRequest struct {
-	Page       int
-	Limit      int
-	Search     string
-	CategoryId string
-	Barcode    string
+	Page     int
+	Limit    int
+	Category string
+	Barcode  string
 }
 
 type GetAllComingTableProduct struct {

@@ -33,7 +33,8 @@ func (s *remainingRepo) CreateRemaining(req models.CreateRemaining) (string, err
 			barcode,
 			count,
 			total_price) 
-	VALUES($1,$2,$3,$4,$5,$6,$7,$8)`
+	VALUES($1,$2,$3,$4,$5,$6,$7,$8)
+	`
 	_, err := s.db.Exec(context.Background(), query,
 		id,
 		req.BranchId,
@@ -46,7 +47,7 @@ func (s *remainingRepo) CreateRemaining(req models.CreateRemaining) (string, err
 	)
 	if err != nil {
 		fmt.Println("error:", err.Error())
-		return "", err
+		return "error exec", err
 	}
 	return id, nil
 }
@@ -65,7 +66,8 @@ func (s *remainingRepo) UpdateRemaining(req models.Remaining) (string, error) {
 		total_price=$8,
 		updated_at=NOW()
 	WHERE 
-		id=$1`
+		id=$1
+	`
 	resp, err := s.db.Exec(context.Background(), query,
 		req.Id,
 		req.BranchId,
@@ -77,10 +79,10 @@ func (s *remainingRepo) UpdateRemaining(req models.Remaining) (string, error) {
 		req.TotalPrice,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowAffected", pgx.ErrNoRows
 	}
 	return "Updated", nil
 }
@@ -96,12 +98,13 @@ func (s *remainingRepo) GetRemaining(req models.IdRequestRemaining) (models.Rema
 		barcode,
 		count,
 		total_price,
-		created_at,
-		updated_at
+		created_at :: text,
+		updated_at :: text
 	FROM 
 		remaining
 	WHERE 
-		id=$1`
+		id=$1
+	`
 	remaining := models.Remaining{}
 	err := s.db.QueryRow(context.Background(), query, req.Id).Scan(
 		&remaining.Id,
@@ -121,7 +124,7 @@ func (s *remainingRepo) GetRemaining(req models.IdRequestRemaining) (models.Rema
 func (b *remainingRepo) GetAllRemaining(req models.GetAllRemainingRequest) (resp models.GetAllRemaining, err error) {
 	var (
 		params  = make(map[string]interface{})
-		filter  = "WHERE true "
+		filter  = " WHERE true "
 		offsetQ = " OFFSET 0 "
 		limit   = " LIMIT 10 "
 		offset  = (req.Page - 1) * req.Limit
@@ -136,22 +139,37 @@ func (b *remainingRepo) GetAllRemaining(req models.GetAllRemainingRequest) (resp
 		barcode,
 		count,
 		total_price,
-		created_at,
-		updated_at
+		created_at :: text,
+		updated_at :: text
 	FROM
 		remaining
 	`
-	if req.Search != "" {
-		filter += ` WHERE name ILIKE '%' || @search || '%' `
-		params["search"] = req.Search
+
+	if req.Branch != "" {
+		filter += ` AND branch_id IN(
+			SELECT
+				r.branch_id
+			FROM 
+				remaining as r
+			JOIN 
+				branch as b ON b.id = r.branch_id
+			WHERE
+				b.name ILIKE '%' || @branch || '%'
+		)`
+		params["branch"] = req.Branch
 	}
-	if req.BranchId != "" {
-		filter += ` AND branch_id=@branch_id `
-		params["branch_id"] = req.BranchId
-	}
-	if req.CategoryId != "" {
-		filter += ` AND category_id=@category_id `
-		params["category_id"] = req.CategoryId
+	if req.Category != "" {
+		filter += ` AND category_id IN(
+			SELECT
+				r.category_id
+			FROM 
+				remaining as r
+			JOIN 
+				category as c ON c.id = r.category_id
+			WHERE
+				c.name ILIKE '%' || @category || '%'
+			) `
+		params["category"] = req.Category
 	}
 	if req.Barcode != "" {
 		filter += ` AND barcode=@barcode `
@@ -190,15 +208,16 @@ func (s *remainingRepo) DeleteRemaining(req models.IdRequestRemaining) (string, 
 	DELETE FROM
 		remaining
 	WHERE
-		id=$1 `
+		id=$1 
+	`
 	resp, err := s.db.Exec(context.Background(), query,
 		req.Id,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowsAffected", pgx.ErrNoRows
 	}
 
 	return "deleted", nil

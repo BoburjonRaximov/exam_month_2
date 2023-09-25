@@ -87,7 +87,7 @@ func (h *Handler) GetBranch(c *gin.Context) {
 // @Failure      500  {object}  response.ErrorResp
 func (h *Handler) UpdateBranch(c *gin.Context) {
 	var branch models.Branch
-	err := c.ShouldBind(&branch)
+	err := c.ShouldBindJSON(&branch)
 	if err != nil {
 		h.log.Error("error while binding:", logger.Error(err))
 		c.JSON(http.StatusBadRequest, "invalid body")
@@ -141,6 +141,7 @@ func (h *Handler) DeleteBranch(c *gin.Context) {
 // @Produce      json
 // @Param        limit    query     integer  true  "limit for response"  Default(10)
 // @Param        page    query     integer  true  "page of req"  Default(1)
+// @Param        search    query     string    false  "search name"
 // @Success      200  {object}   models.GetAllBranch
 // @Failure      400  {object}  response.ErrorResp
 // @Failure      404  {object}  response.ErrorResp
@@ -161,10 +162,9 @@ func (h *Handler) GetAllBranch(c *gin.Context) {
 	}
 
 	resp, errs := h.strg.Branch().GetAllBranch(models.GetAllBranchRequest{
-		Page:    page,
-		Limit:   limit,
-		Search:  c.Query("search"),
-		Address: c.Query("address"),
+		Page:   page,
+		Limit:  limit,
+		Search: c.Query("search"),
 	})
 	if errs != nil {
 		h.log.Error("error Branch GetAll:", logger.Error(err))

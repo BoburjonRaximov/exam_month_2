@@ -267,6 +267,11 @@ paths:
         name: page
         required: true
         type: integer
+      - default: search
+        description: search
+        in: query
+        name: search
+        type: string
       produces:
       - application/json
       responses:
@@ -444,6 +449,11 @@ paths:
         name: page
         required: true
         type: integer
+      - default: search
+        description: page of req
+        in: query
+        name: page
+        type: string
       produces:
       - application/json
       responses:

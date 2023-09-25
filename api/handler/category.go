@@ -135,8 +135,9 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 // @Tags         categories
 // @Accept       json
 // @Produce      json
-// @Param        limit    query     integer  true  "limit for response"  Default(10)
-// @Param        page    query     integer  true  "page of req"  Default(1)
+// @Param        limit    query     integer  true   "limit for response"  Default(10)
+// @Param        page     query     integer  true   "page of req"  Default(1)
+// @Param        search   query     string   false  "search name"
 // @Success      200  {object}  models.GetAllCategory
 // @Failure      400  {object}  response.ErrorResp
 // @Failure      404  {object}  response.ErrorResp

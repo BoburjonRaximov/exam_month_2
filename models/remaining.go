@@ -24,12 +24,11 @@ type Remaining struct {
 }
 
 type GetAllRemainingRequest struct {
-	Page       int
-	Limit      int
-	Search     string
-	BranchId   string
-	CategoryId string
-	Barcode    string
+	Page     int
+	Limit    int
+	Branch   string
+	Category string
+	Barcode  string
 }
 
 type GetAllRemaining struct {

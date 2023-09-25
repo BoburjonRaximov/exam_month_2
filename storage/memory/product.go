@@ -31,7 +31,8 @@ func (s *productRepo) CreateProduct(req models.CreateProduct) (string, error) {
 			price,
 			barcode,
 			category_id) 
-    VALUES($1,$2,$3,$4,$5)`
+    VALUES($1,$2,$3,$4,$5)
+	`
 	_, err := s.db.Exec(context.Background(), query,
 		id,
 		req.Name,
@@ -41,7 +42,7 @@ func (s *productRepo) CreateProduct(req models.CreateProduct) (string, error) {
 	)
 	if err != nil {
 		fmt.Println("error:", err.Error())
-		return "", err
+		return "error exec", err
 	}
 	return id, nil
 }
@@ -57,7 +58,8 @@ func (s *productRepo) UpdateProduct(req models.Product) (string, error) {
 		category_id=$5,
 		updated_at = NOW()
 	WHERE 
-		id=$1`
+		id=$1
+	`
 	resp, err := s.db.Exec(context.Background(), query,
 		req.Id,
 		req.Name,
@@ -66,10 +68,10 @@ func (s *productRepo) UpdateProduct(req models.Product) (string, error) {
 		req.CategoryId,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowsAffected", pgx.ErrNoRows
 	}
 	return "Updated", nil
 }
@@ -82,12 +84,13 @@ func (s *productRepo) GetProduct(req models.IdRequestProduct) (models.Product, e
 		price,
 		barcode,
 		category_id,
-		created_at,
-		updated_at
+		created_at :: text,
+		updated_at :: text
 	FROM
 		product
 	WHERE
-		id=$1`
+		id=$1
+	`
 	product := models.Product{}
 	err := s.db.QueryRow(context.Background(), query, req.Id).Scan(
 		&product.Id,
@@ -106,7 +109,7 @@ func (s *productRepo) GetProduct(req models.IdRequestProduct) (models.Product, e
 func (b *productRepo) GetAllProduct(req models.GetAllProductRequest) (resp models.GetAllProduct, err error) {
 	var (
 		params  = make(map[string]interface{})
-		filter  = "WHERE true "
+		filter  = " WHERE true "
 		offsetQ = " OFFSET 0 "
 		limit   = " LIMIT 10 "
 		offset  = (req.Page - 1) * req.Limit
@@ -118,14 +121,14 @@ func (b *productRepo) GetAllProduct(req models.GetAllProductRequest) (resp model
 		price,
 		barcode,
 		category_id,
-		created_at,
-		updated_at	
+		created_at :: text,
+		updated_at :: text
 	FROM
 		product
 	`
-	if req.Search != "" {
-		filter += ` WHERE name ILIKE '%' || @search || '%' `
-		params["search"] = req.Search
+	if req.SearchName != "" {
+		filter += ` AND name ILIKE '%' || @search || '%' `
+		params["search"] = req.SearchName
 	}
 	if req.Barcode != "" {
 		filter += ` AND barcode=@barcode `
@@ -169,10 +172,10 @@ func (s *productRepo) DeleteProduct(req models.IdRequestProduct) (string, error)
 		req.Id,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowsAffected", pgx.ErrNoRows
 	}
 
 	return "deleted", nil

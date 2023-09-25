@@ -135,8 +135,10 @@ func (h *Handler) DeleteProduct(c *gin.Context) {
 // @Tags         products
 // @Accept       json
 // @Produce      json
-// @Param        limit    query     integer  true  "limit for response"  Default(10)
-// @Param        page    query     integer  true  "page of req"  Default(1)
+// @Param        limit     query     integer  true   "limit for response"  Default(10)
+// @Param        page      query     integer  true   "page of req"  Default(1)
+// @Param        search    query     string   false  "search name"
+// @Param        barcode   query     string   false  "search barcode"
 // @Success      200  {object}  models.GetAllProduct
 // @Failure      400  {object}  response.ErrorResp
 // @Failure      404  {object}  response.ErrorResp
@@ -160,7 +162,8 @@ func (h *Handler) GetAllProduct(c *gin.Context) {
 	resp, err := h.strg.Product().GetAllProduct(models.GetAllProductRequest{
 		Page:   page,
 		Limit:  limit,
-		Search: c.Query("search"),
+		SearchName: c.Query("search"),
+		Barcode: c.Query("barcode"),
 	})
 	if err != nil {
 		h.log.Error("error product GetAll:", logger.Error(err))

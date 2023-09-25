@@ -135,8 +135,10 @@ func (h *Handler) DeleteComingTable(c *gin.Context) {
 // @Tags         comingTables
 // @Accept       json
 // @Produce      json
-// @Param        limit    query     integer  true  "limit for response"  Default(10)
-// @Param        page    query     integer  true  "page of req"  Default(1)
+// @Param        limit       query     integer  true   "limit for response"  Default(10)
+// @Param        page        query     integer  true   "page of req"  Default(1)
+// @Param        branch      query     string   false  "search branch"
+// @Param        coming_id   query     string   false  "search coming_id"
 // @Success      200  {object}  models.GetAllComingTable
 // @Failure      400  {object}  response.ErrorResp
 // @Failure      404  {object}  response.ErrorResp
@@ -158,9 +160,10 @@ func (h *Handler) GetAllComingTable(c *gin.Context) {
 	}
 
 	resp, err := h.strg.ComingTable().GetAllComingTable(models.GetAllComingTableRequest{
-		Page:   page,
-		Limit:  limit,
-		Search: c.Query("search"),
+		Page:     page,
+		Limit:    limit,
+		Branch:   c.Query("branch"),
+		ComingId: c.Query("coming_id"),
 	})
 	if err != nil {
 		h.log.Error("error ComingTable GetAll:", logger.Error(err))

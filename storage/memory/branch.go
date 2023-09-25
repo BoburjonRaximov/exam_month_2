@@ -25,7 +25,11 @@ func (b *branchRepo) CreateBranch(req models.CreateBranch) (string, error) {
 
 	query := `
 	INSERT INTO 
-		branch(id,name,address,phone_number) 
+		branch(
+			id,
+			name,
+			address,
+			phone_number) 
 	VALUES($1,$2,$3,$4)`
 	_, err := b.db.Exec(context.Background(), query,
 		id,
@@ -43,8 +47,13 @@ func (b *branchRepo) CreateBranch(req models.CreateBranch) (string, error) {
 func (b *branchRepo) UpdateBranch(req models.Branch) (string, error) {
 	query := `
 	UPDATE branch
-	SET name=$2,address=$3,phone_number=$4,update_at = NOW()
-	WHERE id=$1
+	 SET 
+	 	name=$2,
+	 	address=$3,
+		phone_number=$4,
+		updated_at = NOW()
+	WHERE 
+		id=$1
 	`
 	resp, err := b.db.Exec(context.Background(), query,
 		req.Id,
@@ -53,7 +62,7 @@ func (b *branchRepo) UpdateBranch(req models.Branch) (string, error) {
 		req.PhoneNumber,
 	)
 	if err != nil {
-		return "warning", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
 		return "error row", pgx.ErrNoRows
@@ -63,16 +72,16 @@ func (b *branchRepo) UpdateBranch(req models.Branch) (string, error) {
 
 func (b *branchRepo) GetBranch(req models.IdRequest) (models.Branch, error) {
 	query := `
-	select
+	SELECT
 	    id,
 		name,
 		address,
 		phone_number,
-		created_at,
-		updated_at 
-	 from 
+		created_at::text,
+		updated_at::text 
+	 FROM 
 	 	branch
-	where 
+	WHERE 
 		id = $1`
 	resp := b.db.QueryRow(context.Background(), query,
 		req.Id,
@@ -105,12 +114,13 @@ func (b *branchRepo) GetAllBranch(req models.GetAllBranchRequest) (resp models.G
 		name,
 		address,
 		phone_number,
-		created_at,
-		updated_at 
-	FROM branch
+		created_at::text,
+		updated_at::text 
+	FROM 
+		branch
 	`
 	if req.Search != "" {
-		filter += ` WHERE name ILIKE '%' || @search || '%' `
+		filter += ` AND name ILIKE '%' || @search || '%' `
 		params["search"] = req.Search
 	}
 	if req.Limit > 0 {
@@ -156,16 +166,18 @@ func (b *branchRepo) GetAllBranch(req models.GetAllBranchRequest) (resp models.G
 // delete branch
 func (b *branchRepo) DeleteBranch(req models.IdRequest) (string, error) {
 	query := `
-	delete from branch
-	where id=$1 `
+	DELETE FROM 
+		branch
+	WHERE 
+		id=$1 `
 	resp, err := b.db.Exec(context.Background(), query,
 		req.Id,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowsAffected", pgx.ErrNoRows
 	}
 
 	return "deleted", nil

@@ -20,9 +20,8 @@ type ComingTable struct {
 type GetAllComingTableRequest struct {
 	Page     int
 	Limit    int
-	Search   string
 	ComingId string
-	BranchId string
+	Branch   string
 }
 
 type GetAllComingTable struct {

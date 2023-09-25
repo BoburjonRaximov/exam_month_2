@@ -37,20 +37,20 @@ func (s *categoryRepo) CreateCategory(req models.CreateCategory) (string, error)
 	)
 	if err != nil {
 		fmt.Println("error:", err.Error())
-		return "", err
+		return "error exec", err
 	}
 	return id, nil
 }
 
 func (s *categoryRepo) UpdateCategory(req models.Category) (string, error) {
 	query := `
-	update 
+	UPDATE 
 		category
-	 set 
+	 SET 
 	 	name=$2,
 		parent_id=$3,
 		updated_at=NOW()
-	 where 
+	 WHERE 
 	 	id=$1`
 	resp, err := s.db.Exec(context.Background(), query,
 		req.Id,
@@ -58,25 +58,25 @@ func (s *categoryRepo) UpdateCategory(req models.Category) (string, error) {
 		req.ParentId,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowsAffected", pgx.ErrNoRows
 	}
 	return "Updated", nil
 }
 
 func (s *categoryRepo) GetCategory(req models.IdRequestCategory) (models.Category, error) {
 	query := `
-	select
+	SELECT
 		id,
 		name,
 		parent_id,
-		created_at,
-		updated_at 
-	 from 
+		created_at :: text,
+		updated_at :: text
+	 FROM 
 	 	category
-	 where
+	 WHERE
 		id=$1`
 	category := models.Category{}
 	err := s.db.QueryRow(context.Background(), query, req.Id).Scan(
@@ -95,7 +95,7 @@ func (s *categoryRepo) GetCategory(req models.IdRequestCategory) (models.Categor
 func (b *categoryRepo) GetAllCategory(req models.GetAllCategoryRequest) (resp models.GetAllCategory, err error) {
 	var (
 		params  = make(map[string]interface{})
-		filter  = "WHERE true "
+		filter  = " WHERE true "
 		offsetQ = " OFFSET 0 "
 		limit   = " LIMIT 10 "
 		offset  = (req.Page - 1) * req.Limit
@@ -105,13 +105,13 @@ func (b *categoryRepo) GetAllCategory(req models.GetAllCategoryRequest) (resp mo
 		id,
 		name,
 		parent_id,
-		created_at,
-		updated_at 
+		created_at :: text,
+		updated_at :: text
 	FROM
 		category
 	`
 	if req.Search != "" {
-		filter += ` WHERE name ILIKE '%' || @search || '%' `
+		filter += ` AND name ILIKE '%' || @search || '%' `
 		params["search"] = req.Search
 	}
 	if req.Limit > 0 {
@@ -145,18 +145,18 @@ func (b *categoryRepo) GetAllCategory(req models.GetAllCategoryRequest) (resp mo
 func (s *categoryRepo) DeleteCategory(req models.IdRequestCategory) (string, error) {
 
 	query := `
-	delete from
+	DELETE
 		category
-	where
+	WHERE
 		id=$1 `
 	resp, err := s.db.Exec(context.Background(), query,
 		req.Id,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowsAffected", pgx.ErrNoRows
 	}
 
 	return "deleted", nil

@@ -46,16 +46,16 @@ func (s *comingTableProductRepo) CreateComingTableProduct(req models.CreateComin
 	)
 	if err != nil {
 		fmt.Println("error:", err.Error())
-		return "", err
+		return "error exec", err
 	}
 	return id, nil
 }
 
 func (s *comingTableProductRepo) UpdateComingTableProduct(req models.ComingTableProduct) (string, error) {
 	query := `
-	update 
+	UPDATE 
 		coming_table_product
-	set 
+	SET 
 	    category_id=$2,
 		name=$3,
 		price=$4,
@@ -64,7 +64,7 @@ func (s *comingTableProductRepo) UpdateComingTableProduct(req models.ComingTable
 		total_price=$7,
 		coming_table_id=$8,
 		updated_at=NOW()
-	where 
+	WHERE 
 		id=$1`
 	resp, err := s.db.Exec(context.Background(), query,
 		req.Id,
@@ -77,17 +77,17 @@ func (s *comingTableProductRepo) UpdateComingTableProduct(req models.ComingTable
 		req.ComingTableId,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowsAffected", pgx.ErrNoRows
 	}
 	return "updated", nil
 }
 func (s *comingTableProductRepo) GetComingTableProduct(req models.IdRequestComingTableProduct) (models.ComingTableProduct, error) {
 
 	query := `
-	select
+	SELECT
 		id,
 		category_id,
 		name,
@@ -96,12 +96,13 @@ func (s *comingTableProductRepo) GetComingTableProduct(req models.IdRequestComin
 		count,
 		total_price,
 		coming_table_id,
-		created_at,
-		updated_at
-	from
+		created_at :: text,
+		updated_at :: text
+	FROM
 		coming_table_product
-	where
-		id=$1`
+	WHERE
+		id=$1
+	`
 	comingTableProduct := models.ComingTableProduct{}
 	err := s.db.QueryRow(context.Background(), query, req.Id).Scan(
 		&comingTableProduct.Id,
@@ -124,7 +125,7 @@ func (s *comingTableProductRepo) GetComingTableProduct(req models.IdRequestComin
 func (st *comingTableProductRepo) GetAllComingTableProduct(req models.GetAllComingTableProductRequest) (resp models.GetAllComingTableProduct, err error) {
 	var (
 		params  = make(map[string]interface{})
-		filter  = "WHERE true "
+		filter  = " WHERE true "
 		offsetQ = " OFFSET 0 "
 		limit   = " LIMIT 10 "
 		offset  = (req.Page - 1) * req.Limit
@@ -139,22 +140,28 @@ func (st *comingTableProductRepo) GetAllComingTableProduct(req models.GetAllComi
 		count,
 		total_price,
 		coming_table_id,
-		created_at,
-		updated_at
+		created_at :: text,
+		updated_at :: text
 	FROM 
 		coming_table_product
 	`
-	if req.Search != "" {
-		filter += ` WHERE name ILIKE '%' || @search || '%' `
-		params["search"] = req.Search
-	}
-	if req.CategoryId != "" {
-		filter += ` AND category_id=@category_id `
-		params["category_id"] = req.CategoryId
+
+	if req.Category != "" {
+		filter += ` AND category_id IN(
+	SELECT
+		ct.category_id
+	FROM 
+		coming_table_product as ct
+	JOIN 
+		category as c ON c.id = ct.category_id
+	WHERE
+		c.name ILIKE '%' || @category || '%'
+	)`
+		params["category"] = req.Category
 	}
 	if req.Barcode != "" {
 		filter += ` AND barcode=@barcode `
-		params["job"] = req.Barcode
+		params["barcode"] = req.Barcode
 	}
 	if req.Limit > 0 {
 		limit = fmt.Sprintf("LIMIT %d", req.Limit)
@@ -187,19 +194,18 @@ func (st *comingTableProductRepo) GetAllComingTableProduct(req models.GetAllComi
 
 func (s *comingTableProductRepo) DeleteComingTableProduct(req models.IdRequestComingTableProduct) (string, error) {
 	query := `
-	delete from
+	DELETE FROM
 		coming_table_product
-	where
+	WHERE
 		id=$1 `
 	resp, err := s.db.Exec(context.Background(), query,
 		req.Id,
 	)
 	if err != nil {
-		return "", err
+		return "error exec", err
 	}
 	if resp.RowsAffected() == 0 {
-		return "", pgx.ErrNoRows
+		return "error RowsAffected", pgx.ErrNoRows
 	}
-
 	return "deleted", nil
 }
